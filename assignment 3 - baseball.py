@@ -4,8 +4,8 @@ import subprocess, sys
 packages = ["torch", "pandas", "numpy"]
 #import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-#import pandas as pd
-#import numpy as np
+import pandas as pd
+import numpy as np
 
 # ---- 1) Mock up some tabular data (replace this with your real DataFrame) ----
 # Suppose we have 1,000 rows, 8 feature columns, and a numeric target.
