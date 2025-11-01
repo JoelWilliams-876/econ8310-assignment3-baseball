@@ -1,7 +1,9 @@
 # PyTorch DataLoader — minimal, clean example for tabular data
 # Works for both regression or classification targets.
-import subprocess, sys
-packages = ["torch", "pandas", "numpy"]
+import os
+os.system ('pip install torch pandas numpy')
+# import subprocess, sys
+# packages = ["torch", "pandas", "numpy"]
 #import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 import pandas as pd
@@ -9,7 +11,6 @@ import numpy as np
 
 # ---- 1) Mock up some tabular data (replace this with your real DataFrame) ----
 # Suppose we have 1,000 rows, 8 feature columns, and a numeric target.
-rng = np.random.default_rng(7)
 df = pd.DataFrame(rng.normal(size=(1000, 8)), columns=[f"x{i}" for i in range(8)])
 df["y"] = (df["x0"] * 2.0 - df["x1"] * 0.5 + rng.normal(scale=0.75, size=len(df)))  # regression target
 # For classification, you could instead do: df["y"] = (df["y"] > df["y"].median()).astype(int)

@@ -1,0 +1,72 @@
+import os
+import xml.etree.ElementTree as ET
+from collections import defaultdict
+import torch
+import cv2
+from torch.utils.data import Dataset
+os.system ('pip install torch pandas numpy opencv-python')
+
+def parse_cvat_xml(xml_path):
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+
+    frames = defaultdict(list)
+
+    for track in root.findall("track"):
+        label = track.attrib["label"]
+
+        for box in track.findall("box"):
+            frame_id = int(box.attrib["frame"])
+            outside = int(box.attrib["outside"])  # 1 = object left frame
+            if outside == 1:
+                continue
+
+            xtl = float(box.attrib["xtl"])
+            ytl = float(box.attrib["ytl"])
+            xbr = float(box.attrib["xbr"])
+            ybr = float(box.attrib["ybr"])
+
+            frames[frame_id].append({
+                "label": label,
+                "bbox": [xtl, ytl, xbr, ybr]
+            })
+
+    return frames  # {frame_id: [ {label, bbox}, ... ]}
+
+class CVATVideoDataset(Dataset):
+    def __init__(self, xml_path, video_path, label_map=None, transforms=None):
+        self.annotations = parse_cvat_xml(xml_path)
+        self.cap = cv2.VideoCapture(video_path)
+        self.transforms = transforms
+        self.label_map = label_map or {"baseball": 1}
+
+        self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    def __len__(self):
+        return self.total_frames
+
+    def __getitem__(self, idx):
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        ret, frame = self.cap.read()
+        if not ret:
+            raise IndexError(f"Frame {idx} not found in video")
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        annots = self.annotations.get(idx, [])
+        boxes = []
+        labels = []
+
+        for obj in annots:
+            boxes.append(obj["bbox"])
+            labels.append(self.label_map.get(obj["label"], 0))
+
+        target = {
+            "boxes": torch.as_tensor(boxes, dtype=torch.float32),
+            "labels": torch.as_tensor(labels, dtype=torch.int64)
+        }
+
+        if self.transforms:
+            frame = self.transforms(frame)
+
+        return frame, target
